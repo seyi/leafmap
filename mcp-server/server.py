@@ -71,6 +71,18 @@ async def list_resources() -> list[Resource]:
             mimeType="application/json",
             description="List of available basemaps in leafmap",
         ),
+        Resource(
+            uri="leafmap://docs/backends",
+            name="Mapping Backends Guide",
+            mimeType="text/plain",
+            description="Guide to using different mapping backends (ipyleaflet, folium, etc.)",
+        ),
+        Resource(
+            uri="leafmap://examples/ipyleaflet",
+            name="ipyleaflet Examples",
+            mimeType="text/plain",
+            description="Code examples for using leafmap with ipyleaflet backend",
+        ),
     ]
 
 
@@ -214,6 +226,401 @@ For more examples, visit: https://leafmap.org/notebooks/
             return json.dumps(basemap_dict, indent=2)
         except Exception as e:
             return json.dumps({"error": str(e)}, indent=2)
+
+    elif uri == "leafmap://docs/backends":
+        return """Leafmap Mapping Backends Guide
+
+Leafmap supports multiple mapping backends, each with its own strengths:
+
+## 1. ipyleaflet (Default in Jupyter)
+
+The default backend for Jupyter environments. Provides interactive widgets
+and bidirectional communication between Python and the map.
+
+**Installation:**
+    pip install leafmap
+    # ipyleaflet is included by default
+
+**Usage:**
+    import leafmap
+
+    # Create map with ipyleaflet (default in Jupyter)
+    m = leafmap.Map(center=[40, -100], zoom=4)
+
+    # Add basemap
+    m.add_basemap("OpenTopoMap")
+
+    # Add vector data
+    m.add_vector("path/to/file.geojson", layer_name="My Data")
+
+    # Add raster data
+    m.add_raster("path/to/file.tif", colormap="terrain")
+
+    # Display map
+    m
+
+**Key Features:**
+- Interactive Jupyter widgets
+- Bidirectional Python ↔ JavaScript communication
+- Drawing tools and layer controls
+- Split-panel maps
+- Time series animations
+
+## 2. folium
+
+Static HTML map generation, great for embedding in web pages.
+Automatically used in marimo notebooks and when USE_MKDOCS is set.
+
+**Installation:**
+    pip install leafmap  # folium included by default
+
+**Usage:**
+    import leafmap.foliumap as leafmap
+
+    # Or let leafmap auto-detect
+    m = leafmap.Map(center=[40, -100], zoom=4)
+    m.add_basemap("OpenStreetMap")
+
+    # Save to HTML
+    m.save("map.html")
+
+**Key Features:**
+- Standalone HTML output
+- No Python kernel required after generation
+- Good for static reports and websites
+
+## 3. plotly
+
+Interactive maps with Plotly's powerful visualization capabilities.
+
+**Installation:**
+    pip install "leafmap[backends]"
+
+**Usage:**
+    import leafmap.plotlymap as leafmap
+
+    m = leafmap.Map()
+    m.add_basemap()
+
+## 4. pydeck
+
+WebGL-powered maps for large datasets, based on deck.gl.
+
+**Installation:**
+    pip install "leafmap[backends]"
+
+**Usage:**
+    import leafmap.deck as leafmap
+
+    m = leafmap.Map()
+    m.add_vector("large_dataset.geojson")
+
+## 5. kepler.gl
+
+Advanced geospatial data visualization.
+
+**Installation:**
+    pip install "leafmap[backends]"
+
+**Usage:**
+    import leafmap.kepler as leafmap
+
+    m = leafmap.Map()
+    m.add_data(gdf, name="My Data")
+
+## 6. maplibre / MapLibre GL JS
+
+Modern vector tile rendering with excellent performance.
+
+**Installation:**
+    pip install "leafmap[maplibre]"
+
+**Usage:**
+    from leafmap import maplibregl
+
+    m = maplibregl.Map(style="dark-matter")
+    m.add_vector("data.geojson")
+
+## Backend Selection
+
+Leafmap automatically chooses the appropriate backend:
+- Jupyter Notebook/Lab: ipyleaflet
+- Google Colab: ipyleaflet
+- Marimo notebooks: folium
+- Documentation builds: folium (when USE_MKDOCS is set)
+
+**Force a specific backend:**
+    # Use folium
+    from leafmap.foliumap import Map
+
+    # Use ipyleaflet
+    from leafmap.leafmap import Map
+
+    # Use pydeck
+    from leafmap.deck import Map
+
+For more information, visit: https://leafmap.org
+"""
+
+    elif uri == "leafmap://examples/ipyleaflet":
+        return """Leafmap with ipyleaflet Backend - Code Examples
+
+## Basic Map Creation
+
+```python
+import leafmap
+
+# Create a basic map
+m = leafmap.Map(center=[40, -100], zoom=4)
+m
+```
+
+## Adding Basemaps
+
+```python
+# Add a single basemap
+m = leafmap.Map()
+m.add_basemap("OpenTopoMap")
+
+# Or use built-in basemaps
+m = leafmap.Map(basemap="HYBRID")  # Satellite + labels
+
+# Available basemaps
+leafmap.basemaps.keys()  # List all available basemaps
+```
+
+## Adding Vector Data
+
+```python
+# From file
+m = leafmap.Map()
+m.add_vector(
+    "path/to/file.geojson",
+    layer_name="My Boundaries",
+    style={"color": "blue", "fillOpacity": 0.3}
+)
+
+# From GeoDataFrame
+import geopandas as gpd
+gdf = gpd.read_file("data.geojson")
+m.add_gdf(gdf, layer_name="Data Layer")
+
+# From URL
+url = "https://raw.githubusercontent.com/opengeos/leafmap/master/examples/data/cable_geo.geojson"
+m.add_geojson(url, layer_name="Cables")
+```
+
+## Adding Raster Data
+
+```python
+# Add GeoTIFF
+m = leafmap.Map()
+m.add_raster(
+    "dem.tif",
+    layer_name="Elevation",
+    colormap="terrain",
+    vmin=0,
+    vmax=3000
+)
+
+# Add Cloud Optimized GeoTIFF (COG)
+url = "https://example.com/data.tif"
+m.add_cog_layer(url, name="COG Layer")
+
+# Add local tile server
+m.add_local_tile("large_raster.tif")
+```
+
+## Split-Panel Maps
+
+```python
+# Compare two basemaps
+m = leafmap.Map(center=[40, -100], zoom=4)
+m.split_map(
+    left_layer="OpenStreetMap",
+    right_layer="Esri.WorldImagery"
+)
+
+# Compare raster datasets
+m = leafmap.Map()
+m.split_map(
+    left_layer="before.tif",
+    right_layer="after.tif"
+)
+```
+
+## Drawing and Editing
+
+```python
+# Enable drawing tools
+m = leafmap.Map()
+m.add_basemap("OpenStreetMap")
+
+# Draw shapes interactively, then access them
+# (Use the drawing toolbar in the map interface)
+
+# Get drawn features
+if hasattr(m, 'draw_features'):
+    features = m.draw_features
+    print(features)
+```
+
+## Layer Control and Legends
+
+```python
+# Add multiple layers with control
+m = leafmap.Map()
+m.add_basemap("OpenStreetMap")
+m.add_raster("elevation.tif", layer_name="Elevation")
+m.add_vector("boundaries.geojson", layer_name="Boundaries")
+
+# Add custom legend
+legend_dict = {
+    "Forest": "#228B22",
+    "Water": "#4169E1",
+    "Urban": "#FF6347"
+}
+m.add_legend(title="Land Cover", legend_dict=legend_dict)
+
+# Add colorbar for raster
+m.add_colorbar(
+    vmin=0,
+    vmax=100,
+    palette="terrain",
+    label="Elevation (m)"
+)
+```
+
+## STAC Catalogs
+
+```python
+# Search and visualize STAC data
+m = leafmap.Map()
+
+# Microsoft Planetary Computer
+m.add_stac_layer(
+    url="https://planetarycomputer.microsoft.com/api/stac/v1",
+    collection="landsat-c2-l2",
+    item="LC08_L2SP_047027_20201204_02_T1",
+    bands=["SR_B4", "SR_B3", "SR_B2"],
+    name="Landsat 8"
+)
+```
+
+## Interactive Widgets
+
+```python
+# Add layer controls
+m = leafmap.Map()
+m.add_basemap("OpenStreetMap")
+m.add_layer_control()
+
+# Add measure tool
+m.add_measure_control()
+
+# Add fullscreen control
+m.add_fullscreen_control()
+
+# Add scale bar
+m.add_scale_control()
+```
+
+## Time Series Animation
+
+```python
+# Create animation from raster time series
+import glob
+
+files = glob.glob("timeseries/*.tif")
+m = leafmap.Map()
+m.add_time_slider(
+    files,
+    layer_name="Time Series",
+    date_format="YYYY-MM-DD"
+)
+```
+
+## Choropleth Maps
+
+```python
+import geopandas as gpd
+
+# Load data
+gdf = gpd.read_file("counties.geojson")
+
+# Create choropleth
+m = leafmap.Map()
+m.add_data(
+    gdf,
+    column="population",
+    scheme="Quantiles",
+    cmap="YlOrRd",
+    legend_title="Population"
+)
+```
+
+## Heatmaps
+
+```python
+# Create heatmap from points
+m = leafmap.Map(center=[40, -100], zoom=4)
+m.add_heatmap(
+    "points.csv",
+    latitude="lat",
+    longitude="lon",
+    value="intensity",
+    name="Heatmap"
+)
+```
+
+## Marker Clusters
+
+```python
+# Add marker cluster from CSV
+m = leafmap.Map()
+m.add_points_from_csv(
+    "locations.csv",
+    x="longitude",
+    y="latitude",
+    layer_name="Locations",
+    cluster=True
+)
+```
+
+## Exporting
+
+```python
+# Save map as HTML
+m.to_html("map.html")
+
+# Take screenshot (requires selenium)
+m.to_image("map.png")
+
+# Export drawn features to GeoJSON
+m.save_draw_features("drawn_features.geojson")
+```
+
+## Advanced: Custom JavaScript
+
+```python
+# Execute custom JavaScript
+m = leafmap.Map()
+m.add_basemap("OpenStreetMap")
+
+# Add custom behavior
+js_code = '''
+function onMapClick(e) {
+    alert("You clicked at " + e.latlng);
+}
+map.on('click', onMapClick);
+'''
+m.execute_javascript(js_code)
+```
+
+For more examples, visit:
+- https://leafmap.org/notebooks/
+- https://github.com/opengeos/leafmap/tree/master/examples
+"""
 
     else:
         raise ValueError(f"Unknown resource: {uri}")
@@ -372,6 +779,32 @@ async def list_tools() -> list[Tool]:
                     },
                 },
                 "required": ["crs_code"],
+            },
+        ),
+        Tool(
+            name="generate_code",
+            description="Generate Python code snippets for common leafmap tasks. Returns ready-to-use "
+            "code examples for the specified task with the ipyleaflet or other backends.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "task": {
+                        "type": "string",
+                        "description": "The task to generate code for (e.g., 'create_map', 'add_vector', "
+                        "'add_raster', 'split_map', 'add_basemap', 'draw_features', 'choropleth', etc.)",
+                    },
+                    "backend": {
+                        "type": "string",
+                        "description": "The backend to use (default: 'ipyleaflet'). Options: 'ipyleaflet', "
+                        "'folium', 'plotly', 'pydeck', 'kepler', 'maplibre'",
+                        "default": "ipyleaflet",
+                    },
+                    "file_path": {
+                        "type": "string",
+                        "description": "Optional file path to use in the code example",
+                    },
+                },
+                "required": ["task"],
             },
         ),
     ]
@@ -603,6 +1036,203 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
                 ]
             except Exception as e:
                 return [TextContent(type="text", text=f"Error getting CRS info: {str(e)}")]
+
+        elif name == "generate_code":
+            task = arguments["task"].lower()
+            backend = arguments.get("backend", "ipyleaflet")
+            file_path = arguments.get("file_path", "path/to/file")
+
+            code_templates = {
+                "create_map": {
+                    "ipyleaflet": f"""import leafmap
+
+# Create an interactive map
+m = leafmap.Map(center=[40, -100], zoom=4)
+m  # Display in Jupyter
+""",
+                    "folium": f"""import leafmap.foliumap as leafmap
+
+# Create a folium map
+m = leafmap.Map(center=[40, -100], zoom=4)
+m  # Display in Jupyter or save as HTML
+""",
+                    "maplibre": f"""from leafmap import maplibregl
+
+# Create a MapLibre map
+m = maplibregl.Map(style="dark-matter", center=[-100, 40], zoom=4)
+m
+""",
+                },
+                "add_vector": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map()
+m.add_vector(
+    "{file_path}",
+    layer_name="Vector Layer",
+    style={{"color": "blue", "fillOpacity": 0.3}}
+)
+m
+""",
+                    "folium": f"""import leafmap.foliumap as leafmap
+
+m = leafmap.Map()
+m.add_vector("{file_path}", layer_name="Vector Layer")
+m
+""",
+                },
+                "add_raster": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map()
+m.add_raster(
+    "{file_path}",
+    layer_name="Raster Layer",
+    colormap="terrain",
+    vmin=0,
+    vmax=1000
+)
+m
+""",
+                    "folium": f"""import leafmap.foliumap as leafmap
+
+m = leafmap.Map()
+m.add_raster("{file_path}", layer_name="Raster Layer")
+m
+""",
+                },
+                "add_basemap": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map()
+m.add_basemap("OpenTopoMap")  # Or "HYBRID", "Esri.WorldImagery", etc.
+m
+""",
+                    "folium": f"""import leafmap.foliumap as leafmap
+
+m = leafmap.Map()
+m.add_basemap("OpenTopoMap")
+m
+""",
+                },
+                "split_map": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map(center=[40, -100], zoom=4)
+m.split_map(
+    left_layer="OpenStreetMap",
+    right_layer="Esri.WorldImagery"
+)
+m
+""",
+                },
+                "choropleth": {
+                    "ipyleaflet": f"""import leafmap
+import geopandas as gpd
+
+# Load your data
+gdf = gpd.read_file("{file_path}")
+
+# Create choropleth map
+m = leafmap.Map()
+m.add_data(
+    gdf,
+    column="population",  # Column to visualize
+    scheme="Quantiles",   # Classification scheme
+    cmap="YlOrRd",        # Colormap
+    legend_title="Population"
+)
+m
+""",
+                },
+                "heatmap": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map(center=[40, -100], zoom=4)
+m.add_heatmap(
+    "{file_path}",  # CSV or GeoJSON with points
+    latitude="lat",
+    longitude="lon",
+    value="intensity",
+    name="Heatmap",
+    radius=15
+)
+m
+""",
+                },
+                "draw_features": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map()
+m.add_basemap("OpenStreetMap")
+
+# Draw features using the drawing toolbar in the map interface
+# After drawing, access the features:
+# features = m.draw_features
+
+# To save drawn features:
+# m.save_draw_features("output.geojson")
+m
+""",
+                },
+                "time_series": {
+                    "ipyleaflet": f"""import leafmap
+import glob
+
+# Get list of time series files
+files = glob.glob("timeseries/*.tif")
+
+m = leafmap.Map()
+m.add_time_slider(
+    files,
+    layer_name="Time Series",
+    date_format="YYYY-MM-DD"
+)
+m
+""",
+                },
+                "stac": {
+                    "ipyleaflet": f"""import leafmap
+
+m = leafmap.Map()
+
+# Add data from STAC catalog
+m.add_stac_layer(
+    url="https://planetarycomputer.microsoft.com/api/stac/v1",
+    collection="landsat-c2-l2",
+    item="LC08_L2SP_047027_20201204_02_T1",
+    bands=["SR_B4", "SR_B3", "SR_B2"],
+    name="Landsat 8"
+)
+m
+""",
+                },
+            }
+
+            # Try to find the template
+            if task in code_templates and backend in code_templates[task]:
+                code = code_templates[task][backend]
+            elif task in code_templates and "ipyleaflet" in code_templates[task]:
+                # Fallback to ipyleaflet if backend not found
+                code = code_templates[task]["ipyleaflet"]
+            else:
+                # Generate a generic template
+                code = f"""import leafmap
+
+# {task.replace('_', ' ').title()}
+m = leafmap.Map()
+# Add your code here for: {task}
+m
+"""
+
+            result = {
+                "task": task,
+                "backend": backend,
+                "code": code,
+                "instructions": f"Copy and paste this code into a Jupyter notebook or Python script to {task.replace('_', ' ')}.",
+            }
+
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
         else:
             raise ValueError(f"Unknown tool: {name}")
