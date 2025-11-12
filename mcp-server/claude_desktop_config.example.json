@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "leafmap": {
+      "command": "python",
+      "args": ["/absolute/path/to/leafmap/mcp-server/server.py"]
+    }
+  }
+}

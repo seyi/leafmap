@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leafmap-mcp-server"
+version = "0.1.0"
+description = "Model Context Protocol (MCP) server for leafmap - geospatial analysis and interactive mapping"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["mcp", "leafmap", "geospatial", "gis", "mapping", "mcp-server"]
+authors = [
+    {name = "Leafmap Contributors"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+dependencies = [
+    "mcp>=0.1.0",
+    "leafmap>=0.57.0",
+    "rasterio",
+    "geopandas",
+    "pyproj",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+leafmap-mcp = "server:main"
+
+[project.urls]
+Homepage = "https://github.com/opengeos/leafmap"
+Documentation = "https://leafmap.org"
+Repository = "https://github.com/opengeos/leafmap"
+"Bug Tracker" = "https://github.com/opengeos/leafmap/issues"
+
+[tool.setuptools]
+py-modules = ["server"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
