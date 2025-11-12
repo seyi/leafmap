@@ -807,6 +807,104 @@ async def list_tools() -> list[Tool]:
                 "required": ["task"],
             },
         ),
+        Tool(
+            name="csv_to_map_helper",
+            description="Generate code to convert CSV/Excel files with coordinates to interactive maps. "
+            "Supports various formats including points, heatmaps, and marker clusters.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "csv_path": {
+                        "type": "string",
+                        "description": "Path to the CSV file",
+                    },
+                    "lat_column": {
+                        "type": "string",
+                        "description": "Name of the latitude column (default: 'latitude')",
+                        "default": "latitude",
+                    },
+                    "lon_column": {
+                        "type": "string",
+                        "description": "Name of the longitude column (default: 'longitude')",
+                        "default": "longitude",
+                    },
+                    "map_type": {
+                        "type": "string",
+                        "description": "Type of map: 'points', 'heatmap', or 'cluster' (default: 'points')",
+                        "default": "points",
+                    },
+                },
+                "required": ["csv_path"],
+            },
+        ),
+        Tool(
+            name="search_whitebox_tools",
+            description="Search through WhiteboxTools' 468+ geoprocessing functions by keyword or category. "
+            "Returns tool names, descriptions, and usage examples for geospatial analysis tasks.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search term (e.g., 'slope', 'watershed', 'lidar', 'filter')",
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Tool category: 'Hydrology', 'Terrain', 'LiDAR', 'Image', 'Math', 'Stream'",
+                    },
+                },
+                "required": [],
+            },
+        ),
+        Tool(
+            name="suggest_colormap",
+            description="Recommend appropriate colormaps for different types of geospatial data. "
+            "Provides colormap names and usage examples for elevation, temperature, categorical data, etc.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "data_type": {
+                        "type": "string",
+                        "description": "Type of data: 'elevation', 'temperature', 'precipitation', 'vegetation', "
+                        "'categorical', 'diverging', 'sequential', 'bathymetry', 'population'",
+                    },
+                },
+                "required": ["data_type"],
+            },
+        ),
+        Tool(
+            name="list_data_sources",
+            description="List available public geospatial data sources and APIs that work with leafmap. "
+            "Includes STAC catalogs, OpenStreetMap, building footprints, elevation data, and more.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "data_category": {
+                        "type": "string",
+                        "description": "Category: 'satellite', 'elevation', 'vector', 'basemaps', 'stac', "
+                        "'buildings', 'hydrology', 'land_cover', 'all'",
+                        "default": "all",
+                    },
+                },
+                "required": [],
+            },
+        ),
+        Tool(
+            name="plan_workflow",
+            description="Help plan multi-step geospatial workflows by suggesting a sequence of operations. "
+            "Breaks down complex tasks into manageable steps with code examples.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "goal": {
+                        "type": "string",
+                        "description": "The analysis goal (e.g., 'create elevation map from STAC data', "
+                        "'analyze watershed boundaries', 'visualize time series satellite imagery')",
+                    },
+                },
+                "required": ["goal"],
+            },
+        ),
     ]
 
 
@@ -1230,6 +1328,576 @@ m
                 "backend": backend,
                 "code": code,
                 "instructions": f"Copy and paste this code into a Jupyter notebook or Python script to {task.replace('_', ' ')}.",
+            }
+
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        elif name == "csv_to_map_helper":
+            csv_path = arguments["csv_path"]
+            lat_col = arguments.get("lat_column", "latitude")
+            lon_col = arguments.get("lon_column", "longitude")
+            map_type = arguments.get("map_type", "points")
+
+            code_templates = {
+                "points": f"""import leafmap
+
+# Load CSV and create map with points
+m = leafmap.Map()
+m.add_points_from_xy(
+    "{csv_path}",
+    x="{lon_col}",
+    y="{lat_col}",
+    layer_name="Points"
+)
+m
+""",
+                "heatmap": f"""import leafmap
+
+# Create heatmap from CSV
+m = leafmap.Map()
+m.add_heatmap(
+    "{csv_path}",
+    latitude="{lat_col}",
+    longitude="{lon_col}",
+    name="Heatmap",
+    radius=15
+)
+m
+""",
+                "cluster": f"""import leafmap
+
+# Create marker cluster from CSV
+m = leafmap.Map()
+m.add_points_from_xy(
+    "{csv_path}",
+    x="{lon_col}",
+    y="{lat_col}",
+    layer_name="Locations",
+    icon_names=["map-marker"],
+    spin=True,
+    add_marker_cluster=True
+)
+m
+""",
+            }
+
+            code = code_templates.get(map_type, code_templates["points"])
+
+            result = {
+                "csv_path": csv_path,
+                "lat_column": lat_col,
+                "lon_column": lon_col,
+                "map_type": map_type,
+                "code": code,
+                "tutorial_reference": "See tutorial #9 (CSV to points) at https://leafmap.org/notebooks/09_csv_to_points",
+            }
+
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        elif name == "search_whitebox_tools":
+            query = arguments.get("query", "").lower()
+            category = arguments.get("category", "").lower()
+
+            # Comprehensive whitebox tools database
+            whitebox_tools = {
+                "Hydrology": [
+                    {"name": "BreachDepressions", "description": "Removes depressions in a DEM by breaching"},
+                    {"name": "FillDepressions", "description": "Fills all depressions in a DEM"},
+                    {"name": "D8FlowAccumulation", "description": "Calculates flow accumulation using D8 algorithm"},
+                    {"name": "D8Pointer", "description": "Calculates D8 flow direction"},
+                    {"name": "DInfFlowAccumulation", "description": "D-infinity flow accumulation"},
+                    {"name": "Watershed", "description": "Identifies watersheds/drainage basins"},
+                    {"name": "StreamOrder", "description": "Assigns stream order (Strahler, Horton, Shreve)"},
+                    {"name": "ExtractStreams", "description": "Extract stream networks from flow accumulation"},
+                ],
+                "Terrain": [
+                    {"name": "Slope", "description": "Calculates slope from DEM"},
+                    {"name": "Aspect", "description": "Calculates aspect (direction) from DEM"},
+                    {"name": "Hillshade", "description": "Creates hillshade visualization"},
+                    {"name": "Curvature", "description": "Calculates curvature (plan, profile, tangential)"},
+                    {"name": "RuggednessIndex", "description": "Terrain ruggedness index"},
+                    {"name": "Wetness Index", "description": "Topographic wetness index"},
+                    {"name": "ElevationAboveStream", "description": "Height above nearest stream"},
+                ],
+                "LiDAR": [
+                    {"name": "LidarGroundPointFilter", "description": "Filters LiDAR points to ground returns"},
+                    {"name": "LidarTophatTransform", "description": "Removes background from LiDAR"},
+                    {"name": "LidarIdwInterpolation", "description": "Interpolates LiDAR to raster"},
+                    {"name": "LidarTINGridding", "description": "Creates TIN from LiDAR points"},
+                    {"name": "ClassifyOverlapPoints", "description": "Identifies overlapping points"},
+                ],
+                "Image": [
+                    {"name": "GaussianFilter", "description": "Gaussian blur filter"},
+                    {"name": "MedianFilter", "description": "Median filter for noise removal"},
+                    {"name": "EdgeDetection", "description": "Detect edges in raster"},
+                    {"name": "HistogramMatching", "description": "Match histogram between images"},
+                    {"name": "Mosaic", "description": "Mosaic multiple rasters"},
+                ],
+                "Math": [
+                    {"name": "Add", "description": "Add two rasters or value to raster"},
+                    {"name": "Multiply", "description": "Multiply rasters"},
+                    {"name": "ZonalStatistics", "description": "Calculate statistics by zone"},
+                    {"name": "Reclassify", "description": "Reclassify raster values"},
+                ],
+            }
+
+            results = []
+
+            # Search by query
+            if query:
+                for cat, tools in whitebox_tools.items():
+                    for tool in tools:
+                        if query in tool["name"].lower() or query in tool["description"].lower():
+                            results.append({
+                                "category": cat,
+                                "name": tool["name"],
+                                "description": tool["description"],
+                            })
+
+            # Filter by category
+            elif category:
+                matching_cat = None
+                for cat in whitebox_tools.keys():
+                    if category in cat.lower():
+                        matching_cat = cat
+                        break
+
+                if matching_cat:
+                    for tool in whitebox_tools[matching_cat]:
+                        results.append({
+                            "category": matching_cat,
+                            "name": tool["name"],
+                            "description": tool["description"],
+                        })
+            else:
+                # Return categories if no search
+                results = [{"category": cat, "tool_count": len(tools)} for cat, tools in whitebox_tools.items()]
+
+            example_code = """import leafmap
+
+# Initialize WhiteboxTools
+wbt = leafmap.WhiteboxTools()
+
+# Example: Calculate slope
+wbt.slope("dem.tif", "slope.tif")
+
+# See tutorial #8 at: https://leafmap.org/notebooks/08_whitebox
+"""
+
+            result = {
+                "query": query or "none",
+                "category": category or "none",
+                "results": results[:20],  # Limit to 20 results
+                "total_tools": "468+",
+                "example_code": example_code,
+                "documentation": "https://www.whiteboxgeo.com/manual/wbt_book/available_tools/index.html",
+            }
+
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        elif name == "suggest_colormap":
+            data_type = arguments["data_type"].lower()
+
+            colormap_recommendations = {
+                "elevation": {
+                    "recommended": ["terrain", "gist_earth", "Spectral_r"],
+                    "description": "Terrain shows natural earth tones, ideal for elevation/topography",
+                    "example": """m.add_raster("elevation.tif", colormap="terrain", vmin=0, vmax=3000)""",
+                },
+                "temperature": {
+                    "recommended": ["RdYlBu_r", "coolwarm", "turbo"],
+                    "description": "Red-Yellow-Blue (reversed) shows cold (blue) to hot (red)",
+                    "example": """m.add_raster("temperature.tif", colormap="RdYlBu_r", vmin=-10, vmax=40)""",
+                },
+                "precipitation": {
+                    "recommended": ["YlGnBu", "Blues", "PuBu"],
+                    "description": "Blue gradients represent water/rainfall naturally",
+                    "example": """m.add_raster("rainfall.tif", colormap="YlGnBu", vmin=0, vmax=500)""",
+                },
+                "vegetation": {
+                    "recommended": ["Greens", "YlGn", "RdYlGn"],
+                    "description": "Green gradients for NDVI, biomass, or vegetation indices",
+                    "example": """m.add_raster("ndvi.tif", colormap="Greens", vmin=0, vmax=1)""",
+                },
+                "categorical": {
+                    "recommended": ["tab10", "Set3", "Paired"],
+                    "description": "Distinct colors for land cover, soil types, zones",
+                    "example": """m.add_raster("landcover.tif", colormap="tab10")""",
+                },
+                "diverging": {
+                    "recommended": ["RdBu_r", "BrBG", "PiYG"],
+                    "description": "For data with meaningful center (e.g., change detection)",
+                    "example": """m.add_raster("change.tif", colormap="RdBu_r", vmin=-100, vmax=100)""",
+                },
+                "sequential": {
+                    "recommended": ["viridis", "plasma", "inferno"],
+                    "description": "Perceptually uniform, colorblind-friendly sequential data",
+                    "example": """m.add_raster("population.tif", colormap="viridis")""",
+                },
+                "bathymetry": {
+                    "recommended": ["ocean", "deep", "Blues_r"],
+                    "description": "Blue gradients for ocean depth/bathymetry",
+                    "example": """m.add_raster("bathymetry.tif", colormap="ocean", vmin=-5000, vmax=0)""",
+                },
+                "population": {
+                    "recommended": ["YlOrRd", "Reds", "hot"],
+                    "description": "Yellow to red shows density/intensity",
+                    "example": """m.add_raster("population.tif", colormap="YlOrRd", vmin=0, vmax=10000)""",
+                },
+            }
+
+            recommendation = colormap_recommendations.get(data_type)
+
+            if not recommendation:
+                # Provide general guidance
+                result = {
+                    "data_type": data_type,
+                    "error": f"Unknown data type: {data_type}",
+                    "available_types": list(colormap_recommendations.keys()),
+                    "default_recommendation": "viridis (perceptually uniform, colorblind-friendly)",
+                }
+            else:
+                result = {
+                    "data_type": data_type,
+                    "recommended_colormaps": recommendation["recommended"],
+                    "description": recommendation["description"],
+                    "example_code": recommendation["example"],
+                    "all_colormaps_url": "https://matplotlib.org/stable/tutorials/colors/colormaps.html",
+                    "tutorial_reference": "See tutorial #23 at: https://leafmap.org/notebooks/23_colormaps",
+                }
+
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        elif name == "list_data_sources":
+            category = arguments.get("data_category", "all").lower()
+
+            data_sources = {
+                "stac": [
+                    {
+                        "name": "Microsoft Planetary Computer",
+                        "url": "https://planetarycomputer.microsoft.com/api/stac/v1",
+                        "description": "Petabytes of satellite imagery and environmental data",
+                        "tutorial": "#37",
+                    },
+                    {
+                        "name": "Earth Search (AWS)",
+                        "url": "https://earth-search.aws.element84.com/v1",
+                        "description": "Sentinel-2, Landsat, and more on AWS",
+                        "tutorial": "#64, #73",
+                    },
+                    {
+                        "name": "USGS STAC",
+                        "url": "https://landsatlook.usgs.gov/stac-server",
+                        "description": "Landsat and other USGS data",
+                        "tutorial": "#64",
+                    },
+                ],
+                "elevation": [
+                    {
+                        "name": "National Elevation Dataset (NED)",
+                        "source": "USGS",
+                        "description": "10m, 30m elevation data for USA",
+                        "tutorial": "#56",
+                        "code": "leafmap.download_ned(bbox, output='ned.tif')",
+                    },
+                    {
+                        "name": "The National Map",
+                        "source": "USGS",
+                        "description": "Topographic maps and elevation",
+                        "tutorial": "#57",
+                    },
+                    {
+                        "name": "SRTM",
+                        "source": "NASA",
+                        "description": "Global 30m/90m elevation",
+                        "tutorial": "#88",
+                    },
+                ],
+                "satellite": [
+                    {
+                        "name": "Landsat",
+                        "source": "USGS/NASA",
+                        "description": "30m multispectral, since 1972",
+                        "access": "STAC catalogs",
+                    },
+                    {
+                        "name": "Sentinel-2",
+                        "source": "ESA",
+                        "description": "10m multispectral, global coverage",
+                        "access": "STAC catalogs",
+                    },
+                    {
+                        "name": "MODIS",
+                        "source": "NASA",
+                        "description": "Daily global coverage, 250m-1km",
+                        "access": "NASA Earth Data",
+                        "tutorial": "#88",
+                    },
+                    {
+                        "name": "Maxar Open Data",
+                        "source": "Maxar",
+                        "description": "High-res imagery for disasters",
+                        "tutorial": "#67, #69",
+                    },
+                ],
+                "buildings": [
+                    {
+                        "name": "Microsoft Building Footprints",
+                        "source": "Microsoft",
+                        "description": "AI-extracted building footprints globally",
+                        "tutorial": "#81",
+                        "code": "leafmap.download_ms_buildings(location='City')",
+                    },
+                    {
+                        "name": "Google Building Footprints",
+                        "source": "Google",
+                        "description": "Building footprints for many countries",
+                        "tutorial": "#81",
+                    },
+                    {
+                        "name": "Overture Maps Buildings",
+                        "source": "Overture Maps",
+                        "description": "Global building data",
+                        "tutorial": "#97, #102",
+                    },
+                ],
+                "vector": [
+                    {
+                        "name": "OpenStreetMap",
+                        "source": "OSM",
+                        "description": "Global vector data - roads, buildings, POIs",
+                        "tutorial": "#15",
+                        "code": "m.add_osm_from_geocode('City Name')",
+                    },
+                    {
+                        "name": "Natural Earth",
+                        "source": "Natural Earth",
+                        "description": "Cultural and physical vectors",
+                        "url": "https://www.naturalearthdata.com/",
+                    },
+                ],
+                "hydrology": [
+                    {
+                        "name": "National Hydrography Dataset (NHD)",
+                        "source": "USGS",
+                        "description": "Stream networks, watersheds for USA",
+                        "tutorial": "#98",
+                        "code": "leafmap.get_nhd(basin_id)",
+                    },
+                    {
+                        "name": "National Wetlands Inventory (NWI)",
+                        "source": "USFWS",
+                        "description": "Wetland boundaries for USA",
+                        "tutorial": "#99",
+                        "code": "leafmap.get_nwi(bbox)",
+                    },
+                ],
+                "land_cover": [
+                    {
+                        "name": "National Land Cover Database (NLCD)",
+                        "source": "USGS",
+                        "description": "30m land cover for USA",
+                        "tutorial": "#100",
+                    },
+                    {
+                        "name": "Dynamic World",
+                        "source": "Google",
+                        "description": "Global 10m land cover, near real-time",
+                        "access": "Google Earth Engine",
+                    },
+                    {
+                        "name": "ESA WorldCover",
+                        "source": "ESA",
+                        "description": "Global 10m land cover",
+                        "access": "STAC catalogs",
+                    },
+                ],
+            }
+
+            if category == "all":
+                result = {
+                    "categories": list(data_sources.keys()),
+                    "total_sources": sum(len(sources) for sources in data_sources.values()),
+                    "usage": "Call this tool again with a specific category to see details",
+                }
+            else:
+                matching_sources = data_sources.get(category, [])
+                result = {
+                    "category": category,
+                    "sources": matching_sources,
+                    "count": len(matching_sources),
+                }
+
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        elif name == "plan_workflow":
+            goal = arguments["goal"].lower()
+
+            # Workflow templates based on common patterns
+            workflow_plans = []
+
+            if "stac" in goal or "satellite" in goal:
+                workflow_plans.append({
+                    "workflow": "STAC Satellite Imagery Workflow",
+                    "steps": [
+                        {
+                            "step": 1,
+                            "action": "Search STAC catalog",
+                            "code": """import leafmap
+m = leafmap.Map()
+# Search catalog interactively or via API
+""",
+                            "tutorial": "#64, #73"
+                        },
+                        {
+                            "step": 2,
+                            "action": "Add STAC item to map",
+                            "code": """m.add_stac_layer(
+    url="https://planetarycomputer.microsoft.com/api/stac/v1",
+    collection="landsat-c2-l2",
+    item="ITEM_ID",
+    bands=["SR_B4", "SR_B3", "SR_B2"]
+)""",
+                            "tutorial": "#37"
+                        },
+                        {
+                            "step": 3,
+                            "action": "Visualize with appropriate colormap",
+                            "code": "# Use colormap suggestions from suggest_colormap tool",
+                        }
+                    ]
+                })
+
+            if "elevation" in goal or "dem" in goal or "terrain" in goal:
+                workflow_plans.append({
+                    "workflow": "Elevation/Terrain Analysis",
+                    "steps": [
+                        {
+                            "step": 1,
+                            "action": "Download elevation data",
+                            "code": """import leafmap
+leafmap.download_ned(bbox, output='elevation.tif')
+""",
+                            "tutorial": "#56, #57"
+                        },
+                        {
+                            "step": 2,
+                            "action": "Calculate terrain derivatives",
+                            "code": """wbt = leafmap.WhiteboxTools()
+wbt.slope("elevation.tif", "slope.tif")
+wbt.aspect("elevation.tif", "aspect.tif")
+wbt.hillshade("elevation.tif", "hillshade.tif")
+""",
+                            "tutorial": "#8"
+                        },
+                        {
+                            "step": 3,
+                            "action": "Visualize results",
+                            "code": """m = leafmap.Map()
+m.add_raster("slope.tif", colormap="terrain")
+""",
+                        }
+                    ]
+                })
+
+            if "time series" in goal or "timeseries" in goal or "animation" in goal:
+                workflow_plans.append({
+                    "workflow": "Time Series Animation",
+                    "steps": [
+                        {
+                            "step": 1,
+                            "action": "Collect time series images",
+                            "code": """import glob
+files = glob.glob("timeseries/*.tif")
+files.sort()  # Ensure chronological order
+""",
+                            "tutorial": "#72"
+                        },
+                        {
+                            "step": 2,
+                            "action": "Create time slider or animation",
+                            "code": """m = leafmap.Map()
+m.add_time_slider(
+    files,
+    layer_name="Time Series",
+    date_format="YYYY-MM-DD"
+)
+""",
+                            "tutorial": "#22, #79"
+                        }
+                    ]
+                })
+
+            if "csv" in goal or "points" in goal:
+                workflow_plans.append({
+                    "workflow": "CSV/Point Data Visualization",
+                    "steps": [
+                        {
+                            "step": 1,
+                            "action": "Load CSV with coordinates",
+                            "code": "# Use csv_to_map_helper tool for code generation",
+                            "tutorial": "#9, #34"
+                        },
+                        {
+                            "step": 2,
+                            "action": "Choose visualization style",
+                            "options": ["Points", "Heatmap", "Marker Cluster"],
+                            "tutorial": "#24 (heatmap), #50 (clusters)"
+                        }
+                    ]
+                })
+
+            if "watershed" in goal or "hydrology" in goal:
+                workflow_plans.append({
+                    "workflow": "Watershed/Hydrology Analysis",
+                    "steps": [
+                        {
+                            "step": 1,
+                            "action": "Prepare DEM",
+                            "code": """wbt = leafmap.WhiteboxTools()
+wbt.breach_depressions("dem.tif", "dem_breached.tif")
+wbt.d8_pointer("dem_breached.tif", "d8_pointer.tif")
+""",
+                            "tutorial": "#8, #55"
+                        },
+                        {
+                            "step": 2,
+                            "action": "Calculate flow accumulation",
+                            "code": """wbt.d8_flow_accumulation("d8_pointer.tif", "flow_accum.tif")
+""",
+                        },
+                        {
+                            "step": 3,
+                            "action": "Delineate watersheds",
+                            "code": """wbt.watershed("d8_pointer.tif", pour_pts, "watershed.tif")
+# Or get from NHD: leafmap.get_nhd(basin_id)
+""",
+                            "tutorial": "#98"
+                        }
+                    ]
+                })
+
+            if not workflow_plans:
+                # Generic workflow
+                workflow_plans.append({
+                    "workflow": "General Geospatial Analysis",
+                    "steps": [
+                        {"step": 1, "action": "Create map and add data", "tutorial": "#1"},
+                        {"step": 2, "action": "Apply appropriate styling/colormap"},
+                        {"step": 3, "action": "Add legends and controls", "tutorial": "#6, #7"},
+                        {"step": 4, "action": "Export or publish results", "tutorial": "#19, #28"},
+                    ]
+                })
+
+            result = {
+                "goal": goal,
+                "suggested_workflows": workflow_plans,
+                "next_steps": [
+                    "Use generate_code tool for specific tasks",
+                    "Use search_whitebox_tools for analysis functions",
+                    "Use suggest_colormap for visualization",
+                ],
+                "tutorials": "https://leafmap.org/notebooks/",
             }
 
             return [TextContent(type="text", text=json.dumps(result, indent=2))]
