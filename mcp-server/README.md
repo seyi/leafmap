@@ -152,22 +152,112 @@ What basemaps are available in leafmap?
 
 ## Development
 
+### Setting up development environment
+
+Install the package with development dependencies:
+
+```bash
+pip install -e ".[dev]"
+pip install -r requirements-test.txt
+```
+
+Or use the Makefile:
+
+```bash
+make install-dev
+```
+
 ### Running tests
 
+Run all tests:
 ```bash
 pytest
 ```
 
+Or use the Makefile:
+```bash
+make test
+```
+
+Run tests with verbose output:
+```bash
+pytest -vv
+# or
+make test-verbose
+```
+
+Run tests with coverage:
+```bash
+pytest --cov=server --cov-report=term-missing --cov-report=html
+# or
+make test-coverage
+```
+
+### Test structure
+
+The test suite (`test_server.py`) includes:
+
+- **TestResources**: Tests for all resource endpoints
+  - Listing resources
+  - Reading each resource
+  - Error handling for invalid resources
+
+- **TestTools**: Tests for all tool functionality
+  - Tool listing and metadata
+  - Individual tool tests with various parameters
+  - Error handling
+
+- **TestRasterInfo**: Integration tests with actual raster files
+  - Creating sample GeoTIFF files
+  - Reading metadata
+  - Handling missing files
+
+- **TestVectorInfo**: Integration tests with actual vector files
+  - Creating sample GeoJSON files
+  - Reading metadata
+  - Handling missing files
+
+- **TestErrorHandling**: Edge cases and error scenarios
+  - Invalid CRS codes
+  - Missing parameters
+  - Malformed inputs
+
+- **TestIntegration**: Server integration tests
+  - Server initialization
+  - Tool and resource validation
+
 ### Code formatting
 
+Format code with black:
 ```bash
-black server.py
+black server.py test_server.py
+# or
+make format
+```
+
+### Linting
+
+Run linting checks:
+```bash
+flake8 server.py test_server.py --max-line-length=100
+# or
+make lint
 ```
 
 ### Type checking
 
+Run type checking:
 ```bash
-mypy server.py
+mypy server.py --ignore-missing-imports
+# or (included in make lint)
+make lint
+```
+
+### Clean up
+
+Remove generated files:
+```bash
+make clean
 ```
 
 ## About Leafmap
