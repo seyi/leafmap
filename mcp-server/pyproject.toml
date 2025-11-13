@@ -31,6 +31,8 @@ dependencies = [
     "rasterio",
     "geopandas",
     "pyproj",
+    "nbformat>=5.9.0",
+    "nbconvert>=7.0.0",
 ]
 
 [project.optional-dependencies]
