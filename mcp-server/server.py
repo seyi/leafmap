@@ -932,7 +932,7 @@ async def list_tools() -> list[Tool]:
             name="execute_workflow",
             description="Generate, create, and execute a complete Jupyter notebook for a geospatial workflow. "
             "This tool creates the notebook, runs it, captures outputs, and returns results including any "
-            "generated maps, images, or data files. Use this for end-to-end workflow automation.",
+            "generated maps, images, or data files. Optionally opens the executed notebook automatically.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -953,6 +953,16 @@ async def list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Maximum execution time in seconds (default: 300)",
                         "default": 300,
+                    },
+                    "open_notebook": {
+                        "type": "boolean",
+                        "description": "Automatically open the executed notebook in browser (default: true)",
+                        "default": True,
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "description": "Format for viewing: 'html' (browser), 'jupyter' (notebook server), or 'none' (default: 'html')",
+                        "default": "html",
                     },
                 },
                 "required": ["goal"],
@@ -2074,6 +2084,8 @@ print("✓ Imports successful")"""
             working_dir = arguments.get("working_directory", ".")
             parameters = arguments.get("parameters", {})
             timeout = arguments.get("timeout", 300)
+            open_notebook = arguments.get("open_notebook", True)
+            output_format = arguments.get("output_format", "html")
 
             # Create unique notebook name
             timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -2177,6 +2189,59 @@ print("✓ Imports successful")"""
 
                 if not execution_success:
                     result["error_details"] = execution_error
+
+                # Handle automatic notebook opening
+                if open_notebook and output_format != "none":
+                    import webbrowser
+                    import subprocess
+                    import sys
+
+                    opened = False
+                    opening_method = None
+
+                    try:
+                        if output_format == "html":
+                            # Convert notebook to HTML
+                            from nbconvert import HTMLExporter
+                            html_exporter = HTMLExporter()
+                            (body, resources) = html_exporter.from_notebook_node(nb)
+
+                            # Save HTML file
+                            html_path = executed_path.replace('.ipynb', '.html')
+                            with open(html_path, 'w', encoding='utf-8') as f:
+                                f.write(body)
+
+                            # Open in browser
+                            webbrowser.open('file://' + os.path.abspath(html_path))
+                            opened = True
+                            opening_method = "browser"
+                            result["html_path"] = html_path
+                            result["opened"] = True
+                            result["opening_method"] = "Opened HTML in default browser"
+
+                        elif output_format == "jupyter":
+                            # Try to open in Jupyter
+                            try:
+                                # Check if jupyter is available
+                                subprocess.run(
+                                    ["jupyter", "notebook", os.path.abspath(executed_path)],
+                                    check=False,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL,
+                                    start_new_session=True
+                                )
+                                opened = True
+                                opening_method = "jupyter"
+                                result["opened"] = True
+                                result["opening_method"] = "Launched Jupyter notebook server"
+                            except (FileNotFoundError, subprocess.CalledProcessError):
+                                result["opened"] = False
+                                result["opening_method"] = "Failed to launch Jupyter (not installed or not in PATH)"
+
+                    except Exception as e:
+                        result["opened"] = False
+                        result["opening_error"] = str(e)
+                        result["opening_method"] = f"Failed to open notebook: {str(e)}"
 
                 return [TextContent(type="text", text=json.dumps(result, indent=2))]
 

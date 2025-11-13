@@ -24,7 +24,7 @@ class TestResources:
     async def test_list_resources(self):
         """Test listing all available resources."""
         resources = await list_resources()
-        assert len(resources) == 5
+        assert len(resources) == 7
 
         resource_uris = [str(r.uri) for r in resources]
         assert "leafmap://docs/overview" in resource_uris
@@ -32,6 +32,8 @@ class TestResources:
         assert "leafmap://docs/quickstart" in resource_uris
         assert "leafmap://info/repository" in resource_uris
         assert "leafmap://info/basemaps" in resource_uris
+        assert "leafmap://docs/backends" in resource_uris
+        assert "leafmap://examples/ipyleaflet" in resource_uris
 
     @pytest.mark.asyncio
     async def test_read_overview_resource(self):
@@ -96,9 +98,10 @@ class TestTools:
     async def test_list_tools(self):
         """Test listing all available tools."""
         tools = await list_tools()
-        assert len(tools) == 7
+        assert len(tools) == 15
 
         tool_names = [t.name for t in tools]
+        # Original tools
         assert "view_raster" in tool_names
         assert "view_vector" in tool_names
         assert "get_raster_info" in tool_names
@@ -106,6 +109,17 @@ class TestTools:
         assert "list_basemaps" in tool_names
         assert "convert_coordinates" in tool_names
         assert "get_crs_info" in tool_names
+        # Code generation tool
+        assert "generate_code" in tool_names
+        # Workflow tools
+        assert "csv_to_map_helper" in tool_names
+        assert "search_whitebox_tools" in tool_names
+        assert "suggest_colormap" in tool_names
+        assert "list_data_sources" in tool_names
+        assert "plan_workflow" in tool_names
+        # Notebook tools
+        assert "create_notebook" in tool_names
+        assert "execute_workflow" in tool_names
 
     @pytest.mark.asyncio
     async def test_list_basemaps_tool(self):
